@@ -1,0 +1,25 @@
+# Used as:
+#   - fleetreeve.sshd.config: 50-sftp-only
+#     content: |
+#       Match Group sftp
+#           ChrootDirectory /srv/sftp/%u
+#           ForceCommand internal-sftp
+#
+# Needs the module's main role (it refers to the service, and to what sshd
+# needs before it can check a file, from there).
+description: A further drop-in for sshd, such as a Match block - checked before it goes live, and put back if sshd refuses it.
+params:
+  content: {required: true, description: "The lines, as in sshd_config."}
+
+resources:
+  - file: "/etc/ssh/sshd_config.d/{{ .title }}.conf"
+    content: "# Managed by fleetreeve (fleetreeve.sshd.config). Changes made here are put back.\n{{ .content }}"
+    owner: root
+    group: root
+    mode: 0600
+    validate: sshd -t -f %s
+    rollback: true
+    require:
+      - exec[ssh host keys]
+      - exec[sshd privilege separation directory]
+    notify: service[sshd]

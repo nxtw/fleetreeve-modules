@@ -1,0 +1,49 @@
+# SELinux adjustments, driven by data. On a host where SELinux is disabled
+# (or absent, as on most Debian systems) this role declares nothing.
+resources:
+  - package: "{{ .selinux_tools_package }}"      # provides semanage
+    when: ne .facts.selinux "disabled"
+
+  # The mode, now and at the next boot. Only between enforcing and
+  # permissive: switching SELinux off or on needs a reboot and a relabel,
+  # which is not something to do in passing.
+  - exec: fleetreeve.selinux cannot set this mode
+    command: 'echo "selinux_mode must be enforcing or permissive, not {{ .selinux_mode }}" >&2; exit 1'
+    unless: "false"
+    when: and .selinux_mode (ne .selinux_mode "enforcing") (ne .selinux_mode "permissive")
+
+  - line: selinux mode at boot
+    path: /etc/selinux/config
+    line: "SELINUX={{ .selinux_mode }}"
+    match: '^SELINUX='
+    when: and (ne .facts.selinux "disabled") (or (eq .selinux_mode "enforcing") (eq .selinux_mode "permissive"))
+
+  - exec: selinux mode now
+    command: "setenforce {{ .selinux_mode }}"
+    unless: 'test "$(getenforce | tr A-Z a-z)" = "{{ .selinux_mode }}"'
+    when: and (ne .facts.selinux "disabled") (or (eq .selinux_mode "enforcing") (eq .selinux_mode "permissive"))
+
+  - fleetreeve.selinux.boolean: "{{ .item }}"
+    each: "{{ .selinux_booleans }}"
+    value: "on"
+    when: ne .facts.selinux "disabled"
+
+  - fleetreeve.selinux.boolean: "{{ .item }}"
+    each: "{{ .selinux_booleans_off }}"
+    value: "off"
+    when: ne .facts.selinux "disabled"
+
+  - fleetreeve.selinux.port: '{{ required "selinux_ports: every entry needs a port, like 8080/tcp" (index .item "port") }}'
+    each: "{{ .selinux_ports }}"
+    type: '{{ required "selinux_ports: every entry needs a type, like http_port_t" (index .item "type") }}'
+    ensure: '{{ index .item "ensure" | default "present" }}'
+    require: 'package[{{ .selinux_tools_package }}]'
+    when: ne .facts.selinux "disabled"
+
+  - fleetreeve.selinux.fcontext: '{{ required "selinux_fcontexts: every entry needs a path" (index .item "path") }}'
+    each: "{{ .selinux_fcontexts }}"
+    type: '{{ required "selinux_fcontexts: every entry needs a type, like httpd_sys_content_t" (index .item "type") }}'
+    ensure: '{{ index .item "ensure" | default "present" }}'
+    relabel: '{{ if defined "item.relabel" }}{{ .item.relabel }}{{ else }}true{{ end }}'
+    require: 'package[{{ .selinux_tools_package }}]'
+    when: ne .facts.selinux "disabled"

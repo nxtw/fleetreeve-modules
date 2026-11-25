@@ -1,0 +1,23 @@
+name: fleetreeve.sshd
+version: 0.1.0
+description: The OpenSSH server, hardened with a drop-in that is checked before it goes live.
+
+# Defaults; a project's data overrides them. See README.md - and read
+# "Not locking yourself out" there before changing who may log in.
+vars:
+  # The baseline, as sshd_config spells it. It closes what is rarely wanted
+  # and locks nobody out: root can still log in with a key, and passwords
+  # are left as the system has them.
+  sshd_baseline:
+    PermitRootLogin: prohibit-password
+    PermitEmptyPasswords: "no"
+    X11Forwarding: "no"
+    MaxAuthTries: 4
+  # Your own settings. Each one is added to the baseline, or replaces the
+  # baseline's value for that setting; the rest of the baseline stays.
+  sshd_settings: {}
+  sshd_allow_groups: []              # only members of these groups may log in; empty: no such limit
+  sshd_allow_users: []               # only these users may log in; empty: no such limit
+  sshd_service: ""                   # the service's name; empty: ssh on Debian and Ubuntu, sshd elsewhere
+  sshd_package: openssh-server
+  sshd_dropin: 00-fleetreeve         # file name in /etc/ssh/sshd_config.d, without .conf; it must sort first

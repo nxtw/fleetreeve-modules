@@ -1,0 +1,8 @@
+# Used as:   - fleetreeve.selinux.fcontext: "/srv/www(/.*)?"
+#                type: httpd_sys_content_t
+description: The SELinux type of the files at a path, recorded in the policy and applied to what is there.
+params:
+  type: {required: true, description: "The file type, e.g. httpd_sys_content_t."}
+  ensure: {default: present, description: "present or absent. absent removes the rule and gives the files the labels the policy has for them otherwise."}
+  relabel: {type: bool, default: true, description: "Also check and correct the labels of the files that exist (restorecon). Switch off for very large trees, where checking every run takes long."}
+script: fcontext.sh

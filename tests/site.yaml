@@ -4,6 +4,7 @@ name: modules-test
 
 vars:
   open_ports: [80, 443]
+
   gitlab_runner_podman: true
   gitlab_runner_register:
     - name: test-runner
@@ -11,21 +12,79 @@ vars:
       token: glrt-not-a-real-token
       executor: docker
 
+  selinux_mode: enforcing
+  selinux_booleans: [httpd_can_network_connect]
+  selinux_booleans_off: [httpd_enable_cgi]
+  selinux_ports:
+    - {port: 8080/tcp, type: http_port_t}
+    - {port: 8000-8010/tcp, type: http_port_t, ensure: absent}
+  selinux_fcontexts:
+    - {path: "/srv/www(/.*)?", type: httpd_sys_content_t}
+    - {path: /srv/big, type: public_content_t, relabel: false}
+
+  sshd_allow_groups: [admins]
+  sshd_settings:
+    PasswordAuthentication: "no"
+    PermitRootLogin: "no"
+
+  accounts_groups: [admins]
+  accounts:
+    - name: alice
+      uid: 2001
+      comment: Alice Example
+      groups: [admins]
+      keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAliceExampleKeyReplaceMe alice@example.com
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAliceSecondKeyReplaceMe0 alice@laptop
+      sudo: true
+    - name: bob.builder          # no uid, no keys, no sudo
+    - name: carol
+      ensure: absent
+
 include:
   - module: fleetreeve.firewalld
+    when: eq .facts.os.family "redhat"
   - module: fleetreeve.nginx
   - module: fleetreeve.gitlab_runner
+    when: eq .facts.os.family "redhat"
+  - module: fleetreeve.selinux
+  - module: fleetreeve.accounts
+  - module: fleetreeve.sshd
 
 resources:
   - fleetreeve.firewalld.port: 8443/tcp
     require: service[firewalld]
+    when: eq .facts.os.family "redhat"
 
   - fleetreeve.firewalld.port: 9000/udp
     ensure: closed
     zone: public
     require: service[firewalld]
+    when: eq .facts.os.family "redhat"
 
   - fleetreeve.nginx.vhost: www
     server_name: www.example.com
     root: /usr/share/nginx/html/www
     port: 8080
+
+  - fleetreeve.selinux.boolean: nis_enabled
+    value: "off"
+    when: ne .facts.selinux "disabled"
+
+  - fleetreeve.selinux.port: 5353/udp
+    type: dns_port_t
+    when: ne .facts.selinux "disabled"
+
+  - fleetreeve.selinux.fcontext: /srv/app/run.sh
+    type: bin_t
+    when: ne .facts.selinux "disabled"
+
+  - fleetreeve.sshd.config: 50-sftp-only
+    content: |
+      Match Group sftp
+          ForceCommand internal-sftp
+
+  - fleetreeve.accounts.user: dave
+    keys: ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDaveExampleKeyReplaceMe00 dave@example.com"]
+    shell: /bin/sh
+    home: /srv/dave

@@ -1,0 +1,63 @@
+# The OpenSSH server, configured with a drop-in file.
+#
+# sshd uses the FIRST value it reads for each setting, and current
+# distributions (RHEL/CentOS 9, Debian 12, Ubuntu 22.04 and later) include
+# /etc/ssh/sshd_config.d/*.conf at the top of sshd_config. A file that
+# sorts first therefore wins over the vendor's drop-ins and the main file,
+# and sshd_config itself is never edited.
+resources:
+  - package: "{{ .sshd_package }}"
+
+  # Older releases have no such include, and a drop-in would be ignored
+  # there without anyone noticing. Say so instead.
+  - exec: fleetreeve.sshd needs sshd_config to include sshd_config.d
+    command: 'echo "/etc/ssh/sshd_config has no Include for /etc/ssh/sshd_config.d: this system is too old for fleetreeve.sshd" >&2; exit 1'
+    unless: grep -Eqi '^[[:space:]]*Include[[:space:]]+(/etc/ssh/)?sshd_config\.d/' /etc/ssh/sshd_config
+    require: 'package[{{ .sshd_package }}]'
+
+  # sshd only checks a configuration when it has what it needs to run. A
+  # system where the server was installed a moment ago and never started
+  # may have no host keys; and on Debian and Ubuntu the directory below
+  # exists only while the service runs, so with ssh stopped nothing could
+  # be checked - and the service never started.
+  - exec: ssh host keys
+    command: ssh-keygen -A
+    unless: ls /etc/ssh/ssh_host_*_key >/dev/null 2>&1
+    require: 'package[{{ .sshd_package }}]'
+
+  # Only where sshd itself says it misses the directory.
+  - exec: sshd privilege separation directory
+    command: mkdir -p -m 0755 /run/sshd
+    unless: test -d /run/sshd || ! sshd -t 2>&1 | grep -q /run/sshd
+    require:
+      - 'package[{{ .sshd_package }}]'
+      - exec[ssh host keys]
+
+  - file: /etc/ssh/sshd_config.d
+    ensure: directory
+    owner: root
+    group: root
+    mode: 0755
+    require: 'package[{{ .sshd_package }}]'
+
+  - file: "/etc/ssh/sshd_config.d/{{ .sshd_dropin }}.conf"
+    template: ../templates/dropin.conf.tmpl
+    owner: root
+    group: root
+    mode: 0600
+    # Checked before it goes live: a file sshd cannot parse never lands,
+    # so sshd is never reloaded into a broken configuration.
+    validate: sshd -t -f %s
+    rollback: true
+    require:
+      - exec[fleetreeve.sshd needs sshd_config to include sshd_config.d]
+      - exec[ssh host keys]
+      - exec[sshd privilege separation directory]
+    notify: service[sshd]
+
+  - service: sshd
+    name: '{{ if .sshd_service }}{{ .sshd_service }}{{ else if eq .facts.os.family "debian" }}ssh{{ else }}sshd{{ end }}'
+    ensure: running
+    enabled: true
+    reload: true              # a notification reloads: open sessions carry on
+    require: 'package[{{ .sshd_package }}]'

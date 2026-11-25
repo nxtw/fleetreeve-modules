@@ -1,0 +1,42 @@
+{
+  "arch": "amd64",
+  "fleetreeve": {
+    "packaged": true
+  },
+  "cpu": {
+    "count": 2
+  },
+  "custom": {},
+  "fqdn": "node.example.com",
+  "hostname": "node",
+  "init": "systemd",
+  "kernel": {
+    "name": "linux",
+    "release": "5.14.0-763.el9.x86_64"
+  },
+  "memory": {
+    "total_mb": 3655
+  },
+  "network": {
+    "interfaces": {
+      "eth0": [
+        "10.0.0.10"
+      ]
+    },
+    "ip": "10.0.0.10"
+  },
+  "os": {
+    "name": "debian",
+    "family": "debian",
+    "version": "12",
+    "codename": "bookworm",
+    "pretty": "Debian GNU/Linux 12 (bookworm)"
+  },
+  "package_manager": "apt",
+  "selinux": "disabled",
+  "user": {
+    "home": "/root",
+    "name": "root",
+    "uid": 0
+  }
+}

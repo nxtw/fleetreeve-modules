@@ -1,0 +1,5 @@
+# Used as:   - fleetreeve.selinux.boolean: httpd_can_network_connect
+description: An SELinux boolean, on or off, both now and after a reboot.
+params:
+  value: {default: "on", description: "on or off (true and false are accepted too)."}
+script: boolean.sh

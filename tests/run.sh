@@ -27,8 +27,18 @@ for m in $modules; do
 done
 
 echo
-echo "== the test manifest compiles with all of them"
-FLEETREEVE_MODULES="$repo" "$fleetreeve" validate -facts "$repo/tests/centos9.facts.json" "$repo/tests/site.yaml"
+echo "== every script parses"
+for s in "$repo"/*.*/types/*.sh; do
+    sh -n "$s" || { echo "$s: syntax error" >&2; exit 1; }
+    echo "${s#"$repo"/}: ok"
+done
+
+echo
+echo "== the test manifest compiles with all of them, for both families"
+for facts in centos9 debian12; do
+    printf '%s: ' "$facts"
+    FLEETREEVE_MODULES="$repo" "$fleetreeve" validate -facts "$repo/tests/$facts.facts.json" "$repo/tests/site.yaml"
+done
 
 echo
 echo "== each installs into a project, and verifies"

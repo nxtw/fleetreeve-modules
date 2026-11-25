@@ -1,0 +1,10 @@
+name: fleetreeve.accounts
+version: 0.1.0
+description: People's accounts, with their SSH keys and sudo rights, from data.
+
+# Defaults; a project's data overrides them. See README.md.
+vars:
+  accounts: []                       # the accounts on a host; see README.md for the fields
+  accounts_groups: []                # groups to create first, by name
+  accounts_shell: /bin/bash          # for accounts that name no shell
+  accounts_home: /home               # where home directories are made

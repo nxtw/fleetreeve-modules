@@ -1,0 +1,7 @@
+# Used as:   - fleetreeve.selinux.port: 8080/tcp
+#                type: http_port_t
+description: The SELinux type of a network port, so that a confined service may bind or connect to it.
+params:
+  type: {required: true, description: "The port type, e.g. http_port_t. `semanage port -l` lists them."}
+  ensure: {default: present, description: "present or absent. absent removes a label that was added on this host; labels that come with the policy cannot be removed."}
+script: port.sh

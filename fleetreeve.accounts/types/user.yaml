@@ -1,0 +1,74 @@
+# Used as:
+#   - fleetreeve.accounts.user: alice
+#     comment: Alice Example
+#     groups: [admins]
+#     keys: ["ssh-ed25519 AAAA… alice@laptop"]
+#     sudo: true
+description: A person's account - the user, the SSH keys that may log in as it, and optionally sudo.
+params:
+  ensure: {default: present, description: "present or absent. absent removes the account and its sudo rights; the home directory is left."}
+  uid: {type: int, default: 0, description: "The numeric user id; 0 lets the system choose one. Give one when files are shared between hosts."}
+  comment: {default: "", description: "The person's full name."}
+  shell: {default: "", description: "The login shell; the variable accounts_shell when empty."}
+  home: {default: "", description: "The home directory; <accounts_home>/<name> when empty."}
+  groups: {type: list, default: [], description: "Groups the account is in, besides its own. The list is complete: the account is taken out of others."}
+  keys: {type: list, default: [], description: "Public keys that may log in, one per item. The list is complete: other keys in authorized_keys are removed. Empty leaves the file alone."}
+  sudo: {type: bool, default: false, description: "May run any command as root with sudo, without a password (the account has none)."}
+
+resources:
+  # ensure: absent takes the rights away before the account.
+  - file: '/etc/sudoers.d/fleetreeve-{{ .title | replace "." "_" }}'
+    ensure: absent
+    when: or (ne .ensure "present") (not .sudo)
+
+  - user: "{{ .title }}"
+    ensure: absent
+    when: ne .ensure "present"
+
+  - exec: 'fleetreeve.accounts.user[{{ .title }}]: ensure must be present or absent'
+    command: 'echo "ensure must be present or absent, not {{ .ensure }}" >&2; exit 1'
+    unless: "false"
+    when: and (ne .ensure "present") (ne .ensure "absent")
+
+  # With a user id of its own, or with the one the system gives it.
+  - user: "{{ .title }}"
+    uid: "{{ .uid }}"
+    comment: "{{ .comment }}"
+    shell: "{{ .shell | default .accounts_shell }}"
+    home: '{{ .home | default (print .accounts_home "/" .title) }}'
+    groups: "{{ .groups }}"
+    when: and (eq .ensure "present") (gt .uid 0)
+
+  - user: "{{ .title }}"
+    comment: "{{ .comment }}"
+    shell: "{{ .shell | default .accounts_shell }}"
+    home: '{{ .home | default (print .accounts_home "/" .title) }}'
+    groups: "{{ .groups }}"
+    when: and (eq .ensure "present") (not (gt .uid 0))
+
+  # Only the account itself can read its keys, as sshd insists.
+  - file: '{{ .home | default (print .accounts_home "/" .title) }}/.ssh'
+    ensure: directory
+    owner: "{{ .title }}"
+    mode: 0700
+    require: "user[{{ .title }}]"
+    when: and (eq .ensure "present") .keys
+
+  - file: '{{ .home | default (print .accounts_home "/" .title) }}/.ssh/authorized_keys'
+    content: "{{ .keys | join \"\\n\" }}\n"
+    owner: "{{ .title }}"
+    mode: 0600
+    require: "user[{{ .title }}]"
+    when: and (eq .ensure "present") .keys
+
+  # A broken sudoers file locks everyone out of sudo, so it is checked
+  # before it lands. sudo skips files with a dot in their name, hence the
+  # replacement in the file name.
+  - file: '/etc/sudoers.d/fleetreeve-{{ .title | replace "." "_" }}'
+    content: "# Managed by fleetreeve (fleetreeve.accounts.user).\n{{ .title }} ALL=(ALL) NOPASSWD: ALL\n"
+    owner: root
+    group: root
+    mode: 0440
+    validate: visudo -cf %s
+    require: "user[{{ .title }}]"
+    when: and (eq .ensure "present") .sudo

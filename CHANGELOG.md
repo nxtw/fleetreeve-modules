@@ -2,6 +2,20 @@
 
 What changed in each tagged version of this repository, per module.
 
+## v0.3.0
+
+Three new modules.
+
+- `fleetreeve.sshd` 0.1.0: the OpenSSH server, with its settings in a
+  drop-in that sshd checks before it goes live, and the
+  `fleetreeve.sshd.config` type for further drop-ins such as `Match`
+  blocks.
+- `fleetreeve.accounts` 0.1.0: people's accounts from data, with their
+  SSH keys, groups and sudo rights; the `fleetreeve.accounts.user` type.
+- `fleetreeve.selinux` 0.1.0: the types `fleetreeve.selinux.boolean`,
+  `fleetreeve.selinux.port` and `fleetreeve.selinux.fcontext`, and a role
+  that declares them from data.
+
 ## v0.2.0
 
 - `fleetreeve.nginx` 0.2.0: **a site's web root is now owned by root**

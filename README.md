@@ -9,6 +9,9 @@ itself.
 | --- | --- | --- | --- |
 | [`fleetreeve.nginx`](fleetreeve.nginx) | nginx, and virtual hosts as resources of their own | `main` | `fleetreeve.nginx.vhost` |
 | [`fleetreeve.firewalld`](fleetreeve.firewalld) | firewalld, and open ports as resources of their own | `main` | `fleetreeve.firewalld.port` |
+| [`fleetreeve.sshd`](fleetreeve.sshd) | the OpenSSH server, hardened with a drop-in that is checked before it goes live | `main` | `fleetreeve.sshd.config` |
+| [`fleetreeve.accounts`](fleetreeve.accounts) | people's accounts, with their SSH keys and sudo rights, from data | `main` | `fleetreeve.accounts.user` |
+| [`fleetreeve.selinux`](fleetreeve.selinux) | SELinux booleans, port labels and file contexts as resources of their own | `main` | `fleetreeve.selinux.boolean`, `.port`, `.fcontext` |
 | [`fleetreeve.gitlab_runner`](fleetreeve.gitlab_runner) | GitLab Runner from GitLab's own repository, with its runners configured from data (Red Hat family) | `main` | `fleetreeve.gitlab_runner.runner` |
 
 Each module's own README says what its roles do, which variables they
@@ -20,7 +23,7 @@ In your project directory (the one with your `site.yaml`), add the module
 you want, at a released version:
 
 ```sh
-fleetreeve module add https://github.com/nxtw/fleetreeve-modules.git -path fleetreeve.nginx -version v0.2.0
+fleetreeve module add https://github.com/nxtw/fleetreeve-modules.git -path fleetreeve.nginx -version v0.3.0
 ```
 
 `-path` names the module inside this repository; `-version` is one of its
@@ -60,7 +63,7 @@ changed and whether you have to change anything.
 
 ## Versions
 
-The repository is tagged as a whole: `v0.2.0` is one state of all modules.
+The repository is tagged as a whole: `v0.3.0` is one state of all modules.
 Each module also carries its own `version:` in `module.yaml`, which only
 goes up when that module changes. Versions follow semantic versioning: a
 new major version when a project has to change something to keep working,
@@ -75,14 +78,15 @@ tests/run.sh
 ```
 
 With `fleetreeve` on your `PATH` (or `FLEETREEVE=/path/to/fleetreeve`),
-this loads every module, compiles [a manifest](tests/site.yaml) that uses
-every role and type against the facts of a CentOS Stream 9 host, and
-installs each module into an empty project the way a user would. CI runs
-the same script with the latest fleetreeve release on every push and pull
-request.
+this loads every module, checks the syntax of every script, compiles
+[a manifest](tests/site.yaml) that uses every role and type against the
+facts of a CentOS Stream 9 and a Debian 12 host, and installs each module
+into an empty project the way a user would. CI runs the same script with
+the latest fleetreeve release on every push and pull request.
 
-It checks that modules are well-formed, not what they do on a host: test a
-change on a throwaway machine as well.
+It checks that modules are well-formed, not what they do on a host. Before
+a release the modules are also applied for real, on a machine or in a
+container that can be thrown away; do the same with a change of yours.
 
 ## Contributing
 

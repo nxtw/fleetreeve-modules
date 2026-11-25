@@ -1,0 +1,12 @@
+name: fleetreeve.selinux
+version: 0.1.0
+description: SELinux booleans, port labels and file contexts as resources of their own.
+
+# Defaults; a project's data overrides them. See README.md.
+vars:
+  selinux_mode: ""                   # enforcing or permissive; empty leaves the mode alone
+  selinux_booleans: []               # booleans to switch on, by name
+  selinux_booleans_off: []           # booleans to switch off
+  selinux_ports: []                  # entries of {port: 8080/tcp, type: http_port_t}
+  selinux_fcontexts: []              # entries of {path: "/srv/www(/.*)?", type: httpd_sys_content_t}
+  selinux_tools_package: policycoreutils-python-utils   # what provides semanage

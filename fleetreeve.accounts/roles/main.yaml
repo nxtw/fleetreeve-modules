@@ -1,0 +1,15 @@
+# One account per entry in `accounts`, after the groups in `accounts_groups`.
+resources:
+  - group: "{{ .item }}"
+    each: "{{ .accounts_groups }}"
+
+  - fleetreeve.accounts.user: '{{ required "accounts: every entry needs a name" (index .item "name") }}'
+    each: "{{ .accounts }}"
+    ensure: '{{ index .item "ensure" | default "present" }}'
+    uid: '{{ index .item "uid" | default 0 }}'
+    comment: '{{ index .item "comment" | default "" }}'
+    shell: '{{ index .item "shell" | default "" }}'
+    home: '{{ index .item "home" | default "" }}'
+    groups: '{{ index .item "groups" | default (list) }}'
+    keys: '{{ index .item "keys" | default (list) }}'
+    sudo: '{{ index .item "sudo" | default false }}'

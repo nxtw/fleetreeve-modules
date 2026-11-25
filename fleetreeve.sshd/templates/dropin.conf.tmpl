@@ -1,0 +1,8 @@
+# Managed by fleetreeve (module fleetreeve.sshd). Changes made here are put back.
+# sshd keeps the first value it reads for a setting, and this file is read
+# before the distribution's own, so what is set here wins.
+{{ range $name, $value := .sshd_settings }}{{ $name }} {{ $value }}
+{{ end }}{{ range $name, $value := .sshd_baseline }}{{ if not (defined (print "sshd_settings." $name)) }}{{ $name }} {{ $value }}
+{{ end }}{{ end }}{{ if .sshd_allow_groups }}AllowGroups {{ .sshd_allow_groups | join " " }}
+{{ end }}{{ if .sshd_allow_users }}AllowUsers {{ .sshd_allow_users | join " " }}
+{{ end }}
