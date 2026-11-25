@@ -4,8 +4,8 @@
 #     root: /usr/share/nginx/html/www
 #     port: 8080
 #
-# Needs the module's main role (it refers to the package, the
-# configuration check and the nginx user from there).
+# Needs the module's main role (it refers to the package and the
+# configuration check from there).
 description: An nginx virtual host - web root, start page and server block.
 params:
   server_name: {required: true, description: "The host name the site answers to."}
@@ -13,11 +13,13 @@ params:
   port: {type: int, default: 80, description: "The port to listen on."}
 
 resources:
+  # Owned by root and only readable by nginx: a process that serves the
+  # site should not be able to rewrite it.
   - file: "{{ .root }}"
     ensure: directory
-    owner: "{{ .nginx_user }}"
+    owner: root
     mode: 0755
-    require: package[nginx]         # the package creates the user and the parent
+    require: package[nginx]         # the package creates the parent
 
   - file: "{{ .root }}/index.html"
     content: |

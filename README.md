@@ -20,7 +20,7 @@ In your project directory (the one with your `site.yaml`), add the module
 you want, at a released version:
 
 ```sh
-fleetreeve module add https://github.com/nxtw/fleetreeve-modules.git -path fleetreeve.nginx -version v0.1.0
+fleetreeve module add https://github.com/nxtw/fleetreeve-modules.git -path fleetreeve.nginx -version v0.2.0
 ```
 
 `-path` names the module inside this repository; `-version` is one of its
@@ -60,7 +60,7 @@ changed and whether you have to change anything.
 
 ## Versions
 
-The repository is tagged as a whole: `v0.1.0` is one state of all modules.
+The repository is tagged as a whole: `v0.2.0` is one state of all modules.
 Each module also carries its own `version:` in `module.yaml`, which only
 goes up when that module changes. Versions follow semantic versioning: a
 new major version when a project has to change something to keep working,

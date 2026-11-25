@@ -23,6 +23,11 @@ only then reloads. If the check fails the file is put back (or, if new,
 removed) and nginx is not reloaded: one bad site never takes the others
 down.
 
+A site's web root belongs to root, and nginx can only read it: put content
+there as root (or with fleetreeve), not as the nginx user. If something on
+the host has to write into a web root, declare that directory yourself
+with the owner it needs.
+
 The type is composite: `types/vhost.yaml` is nothing but three `file`
 resources with parameters, so `fleetreeve plan` shows exactly what a site
 consists of.
