@@ -1,0 +1,31 @@
+# Uses every role and every type in this repository, so that compiling it
+# checks them all. It is only ever validated, never applied.
+name: modules-test
+
+vars:
+  open_ports: [80, 443]
+  gitlab_runner_podman: true
+  gitlab_runner_register:
+    - name: test-runner
+      url: https://gitlab.example.com
+      token: glrt-not-a-real-token
+      executor: docker
+
+include:
+  - module: fleetreeve.firewalld
+  - module: fleetreeve.nginx
+  - module: fleetreeve.gitlab_runner
+
+resources:
+  - fleetreeve.firewalld.port: 8443/tcp
+    require: service[firewalld]
+
+  - fleetreeve.firewalld.port: 9000/udp
+    ensure: closed
+    zone: public
+    require: service[firewalld]
+
+  - fleetreeve.nginx.vhost: www
+    server_name: www.example.com
+    root: /usr/share/nginx/html/www
+    port: 8080

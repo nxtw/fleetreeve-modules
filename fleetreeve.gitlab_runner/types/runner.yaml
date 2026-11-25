@@ -1,0 +1,26 @@
+# Used as:   - fleetreeve.gitlab_runner.runner: build-01
+#                url: https://gitlab.example.com
+#                access_token: glpat-…        # or  token: glrt-…
+description: A runner registered on this host with `gitlab-runner register`; created in GitLab first when given an access token.
+params:
+  ensure: {default: present, description: "present or absent. absent unregisters it, and deletes it in GitLab if fleetreeve created it there."}
+  url: {required: true, description: "Your GitLab, e.g. https://gitlab.example.com."}
+  token: {description: "The authentication token (glrt-…) of a runner that already exists in GitLab."}
+  access_token: {description: "Instead of token: an access token with the create_runner scope. The runner is then created in GitLab on the first run, and its token kept on the host."}
+  runner_type: {default: instance_type, description: "With access_token: instance_type, group_type or project_type."}
+  group_id: {description: "With runner_type group_type: the group's numeric id."}
+  project_id: {description: "With runner_type project_type: the project's numeric id."}
+  tags: {type: list, description: "With access_token: the runner's tags."}
+  run_untagged: {type: bool, default: true, description: "With access_token: also take jobs without tags."}
+  locked: {type: bool, default: false, description: "With access_token: lock a project runner to its project."}
+  executor: {default: shell, description: "shell, docker, or any other executor gitlab-runner knows."}
+  limit: {type: int, default: 0, description: "Jobs this runner takes at a time; 0 is no limit of its own."}
+  environment: {type: list, description: "NAME=value pairs given to every job."}
+  docker_image: {default: "almalinux:9", description: "docker executor: the image for jobs that name none."}
+  docker_privileged: {type: bool, default: false, description: "docker executor: privileged containers. Gives jobs root on the host."}
+  docker_volumes: {type: list, default: ["/cache"], description: "docker executor: volumes."}
+  docker_pull_policy: {description: "docker executor: e.g. if-not-present."}
+  docker_host: {description: "docker executor: the engine's socket, e.g. unix:///run/podman/podman.sock."}
+  tls_ca_file: {description: "A CA certificate on the host to verify GitLab with."}
+  register_args: {type: list, description: "Further arguments for `gitlab-runner register`, one per item."}
+script: runner.sh

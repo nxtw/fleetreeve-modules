@@ -1,0 +1,7 @@
+name: fleetreeve.nginx
+version: 0.1.0
+description: nginx, and virtual hosts as resources of their own.
+
+# Defaults for the roles and types here; a project's data overrides them.
+vars:
+  nginx_user: nginx

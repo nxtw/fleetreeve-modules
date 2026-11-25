@@ -1,0 +1,11 @@
+# {{ .server_name }} on {{ .host.name }} - managed by fleetreeve.
+server {
+    listen {{ .port }};
+    server_name {{ .server_name }};
+    root {{ .root }};
+    index index.html;
+
+    location = /healthz {
+        return 200 "ok\n";
+    }
+}

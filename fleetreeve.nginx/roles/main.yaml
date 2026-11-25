@@ -1,0 +1,33 @@
+# nginx itself. Virtual hosts are added with the fleetreeve.nginx.vhost type.
+resources:
+  - package: nginx
+
+  # Replaces the packaged nginx.conf, including its built-in default server.
+  - file: /etc/nginx/nginx.conf
+    template: ../templates/nginx.conf.tmpl
+    mode: 0644
+    validate: nginx -t -c %s
+    require: package[nginx]
+    notify: service[nginx]
+
+  # Debian ships its default site as a separate file; RHEL has none.
+  - file: /etc/nginx/sites-enabled/default
+    ensure: absent
+    when: eq .facts.os.family "debian"
+    require: package[nginx]
+    notify: service[nginx]
+
+  # Virtual hosts notify this instead of the service: the configuration
+  # is checked as a whole first, and nginx only reloads if it is sound.
+  - exec: check nginx configuration
+    command: nginx -t
+    refreshonly: true
+    notify: service[nginx]
+
+  - service: nginx
+    ensure: running
+    enabled: true
+    reload: true
+    require:
+      - file[/etc/nginx/nginx.conf]
+      - exec[check nginx configuration]

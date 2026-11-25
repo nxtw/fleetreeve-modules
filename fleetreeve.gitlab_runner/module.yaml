@@ -1,0 +1,12 @@
+name: fleetreeve.gitlab_runner
+version: 0.1.0
+description: GitLab Runner from GitLab's own repository, with its runners configured from data.
+
+# Defaults; a project's data overrides them. See README.md.
+vars:
+  gitlab_runners: []                 # runners written straight into config.toml; see README.md
+  gitlab_runner_register: []         # or: runners registered by the host itself; see README.md
+  gitlab_runner_concurrent: 1        # jobs this host runs at the same time, over all its runners
+  gitlab_runner_check_interval: 3    # seconds between asking GitLab for new jobs
+  gitlab_runner_version: ""          # e.g. "17.5.0-1" to pin; empty installs the newest once
+  gitlab_runner_podman: false        # run `docker` executors on podman (no Docker needed)

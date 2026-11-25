@@ -1,0 +1,18 @@
+# Managed by fleetreeve.
+user {{ .nginx_user }};
+worker_processes {{ .facts.cpu.count }};
+pid /run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    sendfile      on;
+    server_tokens off;
+    access_log    /var/log/nginx/access.log;
+    error_log     /var/log/nginx/error.log;
+    include       /etc/nginx/conf.d/*.conf;
+}

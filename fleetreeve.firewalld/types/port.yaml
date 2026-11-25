@@ -1,0 +1,6 @@
+# Used as:   - fleetreeve.firewalld.port: 8080/tcp
+description: A port in firewalld, open or closed, both now and after a reload.
+params:
+  ensure: {default: open, description: "open or closed."}
+  zone: {description: "The zone; firewalld's default zone when omitted."}
+script: port.sh

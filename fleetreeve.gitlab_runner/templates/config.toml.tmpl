@@ -1,0 +1,45 @@
+# Managed by fleetreeve (fleetreeve.gitlab_runner) for {{ .host.name }}. Changes made here are overwritten.
+concurrent = {{ .gitlab_runner_concurrent }}
+check_interval = {{ .gitlab_runner_check_interval }}
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+{{ range $i, $r := .gitlab_runners }}
+{{- $executor := index $r "executor" | default "shell" }}
+[[runners]]
+  name = {{ required (printf "gitlab_runners[%d]: name is required" $i) (index $r "name") | quote }}
+  url = {{ required (printf "gitlab_runners[%d]: url is required" $i) (index $r "url") | quote }}
+  token = {{ required (printf "gitlab_runners[%d]: token is required (the runner's glrt-… token from GitLab)" $i) (index $r "token") | quote }}
+  executor = {{ $executor | quote }}
+{{- with index $r "limit" }}
+  limit = {{ . }}
+{{- end }}
+{{- with index $r "builds_dir" }}
+  builds_dir = {{ . | quote }}
+{{- end }}
+{{- with index $r "cache_dir" }}
+  cache_dir = {{ . | quote }}
+{{- end }}
+{{- with index $r "environment" }}
+  environment = {{ toJson . }}
+{{- end }}
+{{- with index $r "extra" }}
+{{ . | trim | indent 2 }}
+{{- end }}
+{{- if eq $executor "docker" }}
+{{- $d := index $r "docker" | default dict }}
+  [runners.docker]
+    image = {{ index $d "image" | default "almalinux:9" | quote }}
+    privileged = {{ index $d "privileged" | default false }}
+    volumes = {{ index $d "volumes" | default (list "/cache") | toJson }}
+{{- with index $d "pull_policy" }}
+    pull_policy = {{ . | quote }}
+{{- end }}
+{{- if index $d "host" }}
+    host = {{ index $d "host" | quote }}
+{{- else if $.gitlab_runner_podman }}
+    host = "unix:///run/podman/podman.sock"
+{{- end }}
+{{- end }}
+{{ end -}}

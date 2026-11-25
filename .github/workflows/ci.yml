@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get the latest fleetreeve release
+        run: |
+          mkdir -p "$RUNNER_TEMP/fleetreeve" && cd "$RUNNER_TEMP/fleetreeve"
+          base=https://github.com/nxtw/fleetreeve/releases/latest/download
+          curl -fsSLO "$base/fleetreeve_linux_amd64.tar.gz"
+          curl -fsSLO "$base/SHA256SUMS"
+          grep ' fleetreeve_linux_amd64.tar.gz$' SHA256SUMS | sha256sum -c -
+          tar -xzf fleetreeve_linux_amd64.tar.gz
+          echo "$RUNNER_TEMP/fleetreeve" >> "$GITHUB_PATH"
+      - name: Check the modules
+        run: tests/run.sh

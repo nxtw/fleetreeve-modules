@@ -1,0 +1,16 @@
+# firewalld, opening the ports listed in `open_ports`. SSH stays open
+# through firewalld's default zone.
+vars:
+  open_ports: []
+
+resources:
+  - package: firewalld
+
+  - service: firewalld
+    ensure: running
+    enabled: true
+    require: package[firewalld]
+
+  - fleetreeve.firewalld.port: "{{ .item }}/tcp"
+    each: "{{ .open_ports }}"
+    require: service[firewalld]

@@ -1,0 +1,101 @@
+# GitLab Runner: repository, package, configuration, service.
+resources:
+  # Only the Red Hat family is supported; say so instead of half-working.
+  - exec: fleetreeve.gitlab_runner supports the Red Hat family only
+    command: 'echo "this host is {{ .facts.os.pretty }}" >&2; exit 1'
+    unless: "false"
+    when: ne .facts.os.family "redhat"
+
+  # GitLab's own package repository, exactly as their install script
+  # writes it. Packages and metadata are signature-checked.
+  - file: /etc/yum.repos.d/runner_gitlab-runner.repo
+    template: ../templates/gitlab-runner.repo.tmpl
+    mode: 0644
+    when: eq .facts.os.family "redhat"
+
+  - package: gitlab-runner
+    name: 'gitlab-runner{{ if .gitlab_runner_version }}-{{ .gitlab_runner_version }}{{ end }}'
+    require: file[/etc/yum.repos.d/runner_gitlab-runner.repo]
+    when: eq .facts.os.family "redhat"
+
+  # The runners. It holds their tokens: readable by root only, and never
+  # shown in diffs or reports. GitLab Runner notices changes to this file
+  # by itself, so nothing is restarted and running jobs carry on.
+  - file: /etc/gitlab-runner/config.toml
+    template: ../templates/config.toml.tmpl
+    mode: 0600
+    owner: root
+    group: root
+    sensitive: true
+    require: package[gitlab-runner]
+    when: and (not .gitlab_runner_register) (eq .facts.os.family "redhat")
+
+  # The other way: the host registers its runners itself (and creates them
+  # in GitLab when given an access token). `gitlab-runner register` then
+  # owns the runners in config.toml, so fleetreeve only keeps the two global
+  # settings in it.
+  - line: gitlab-runner concurrent
+    path: /etc/gitlab-runner/config.toml
+    line: "concurrent = {{ .gitlab_runner_concurrent }}"
+    match: '^concurrent\s*='
+    require: package[gitlab-runner]
+    when: and .gitlab_runner_register (eq .facts.os.family "redhat")
+
+  - line: gitlab-runner check_interval
+    path: /etc/gitlab-runner/config.toml
+    line: "check_interval = {{ .gitlab_runner_check_interval }}"
+    match: '^check_interval\s*='
+    require: package[gitlab-runner]
+    when: and .gitlab_runner_register (eq .facts.os.family "redhat")
+
+  - fleetreeve.gitlab_runner.runner: '{{ required "gitlab_runner_register: every runner needs a name" (index .item "name") }}'
+    each: "{{ .gitlab_runner_register }}"
+    ensure: '{{ index .item "ensure" | default "present" }}'
+    url: '{{ required "gitlab_runner_register: every runner needs a url" (index .item "url") }}'
+    token: '{{ index .item "token" | default "" }}'
+    access_token: '{{ index .item "access_token" | default "" }}'
+    runner_type: '{{ index .item "runner_type" | default "instance_type" }}'
+    group_id: '{{ index .item "group_id" | default "" }}'
+    project_id: '{{ index .item "project_id" | default "" }}'
+    tags: '{{ index .item "tags" | default (list) }}'
+    run_untagged: '{{ if defined "item.run_untagged" }}{{ .item.run_untagged }}{{ else }}true{{ end }}'
+    locked: '{{ index .item "locked" | default false }}'
+    executor: '{{ index .item "executor" | default "shell" }}'
+    limit: '{{ index .item "limit" | default 0 }}'
+    environment: '{{ index .item "environment" | default (list) }}'
+    docker_image: '{{ index .item "docker_image" | default "almalinux:9" }}'
+    docker_privileged: '{{ index .item "docker_privileged" | default false }}'
+    docker_volumes: '{{ index .item "docker_volumes" | default (list "/cache") }}'
+    docker_pull_policy: '{{ index .item "docker_pull_policy" | default "" }}'
+    docker_host: '{{ if index .item "docker_host" }}{{ .item.docker_host }}{{ else if .gitlab_runner_podman }}unix:///run/podman/podman.sock{{ end }}'
+    tls_ca_file: '{{ index .item "tls_ca_file" | default "" }}'
+    register_args: '{{ index .item "register_args" | default (list) }}'
+    require:
+      - package[gitlab-runner]
+      - line[gitlab-runner concurrent]
+      - line[gitlab-runner check_interval]
+    when: eq .facts.os.family "redhat"
+
+  # Both ways at once would have fleetreeve and gitlab-runner overwrite each other.
+  - exec: fleetreeve.gitlab_runner cannot both write and register runners
+    command: 'echo "set gitlab_runners or gitlab_runner_register on a host, not both" >&2; exit 1'
+    unless: "false"
+    when: and .gitlab_runners .gitlab_runner_register
+
+  - service: gitlab-runner
+    ensure: running
+    enabled: true
+    require: package[gitlab-runner]
+    when: eq .facts.os.family "redhat"
+
+  # Optional: run `docker` executors on podman, through its Docker-
+  # compatible socket. No Docker installation is needed.
+  - package: podman
+    when: and .gitlab_runner_podman (eq .facts.os.family "redhat")
+
+  - service: podman.socket
+    ensure: running
+    enabled: true
+    require: package[podman]
+    before: service[gitlab-runner]
+    when: and .gitlab_runner_podman (eq .facts.os.family "redhat")
