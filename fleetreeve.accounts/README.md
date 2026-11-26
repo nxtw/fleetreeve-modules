@@ -31,6 +31,7 @@ accounts:
 | --- | --- |
 | role `main` | the groups in `accounts_groups`, then one account per entry in `accounts` |
 | type `fleetreeve.accounts.user` | one account, titled by its login name. Can be used on its own in a manifest |
+| type `fleetreeve.accounts.authorized_keys` | the keys of one account, titled by its login name; parameter `keys`. The `user` type declares it for you; use it on its own for an account that something else creates |
 
 ## Variables
 
@@ -61,6 +62,15 @@ Each entry of `accounts`, and each parameter of the type:
   it, so a key someone added by hand is removed at the next run, and
   taking a key out of the data takes away that access. With no keys
   listed, the file is not managed at all.
+- **The keys are written as the account, not as root.** A home directory
+  belongs to its account, which can put a symbolic link anywhere in it. If
+  root wrote there, a link from `.ssh` to `/root/.ssh` would turn "write
+  alice's keys" into "let alice log in as root". So the part that touches
+  the home directory runs as the account itself (`runuser`), where a link
+  leads nowhere the account could not go anyway; a `.ssh` or
+  `authorized_keys` that is a link is replaced by a real one. This needs
+  the home directory to exist, and `runuser` (util-linux, which every
+  mainstream distribution has).
 - **`groups` is the whole list** too: the account is taken out of groups
   that are not listed.
 - **Passwords are not set.** An account made here has none and logs in
@@ -83,6 +93,10 @@ Each entry of `accounts`, and each parameter of the type:
 - With `fleetreeve.sshd` and `sshd_allow_groups`, an account can only log
   in when one of its `groups` is allowed there.
 - Public keys are not secrets and can sit in your data as they are.
+- With SELinux, the keys get the label sshd insists on (`ssh_home_t`),
+  whether fleetreeve runs from a shell or as the pull service.
+- Do the same in your own roles: do not use a `file` resource with an
+  `owner` inside a directory that an unprivileged account owns.
 - A login name with a dot (`first.last`) works; its sudoers file is named
   with an underscore instead, because sudo skips files with a dot in
   their name.

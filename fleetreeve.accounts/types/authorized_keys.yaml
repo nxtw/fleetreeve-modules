@@ -1,0 +1,9 @@
+# Used as:   - fleetreeve.accounts.authorized_keys: alice
+#                keys: ["ssh-ed25519 AAAA… alice@laptop"]
+#
+# fleetreeve.accounts.user declares this for you; use it on its own for an
+# account that something else creates.
+description: The SSH keys that may log in as an account - written as that account, never as root.
+params:
+  keys: {type: list, required: true, description: "Public keys, one per item. The list is complete: other keys in authorized_keys are removed."}
+script: authorized_keys.sh

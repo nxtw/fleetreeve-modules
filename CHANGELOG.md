@@ -2,6 +2,34 @@
 
 What changed in each tagged version of this repository, per module.
 
+## v0.4.0
+
+- `fleetreeve.accounts` 0.2.0: **the SSH keys of an account are now
+  written by a process running as that account, not by root.** An account
+  owns its home directory and could, with a symbolic link placed at the
+  right moment, make root write the keys somewhere else - into root's own
+  `authorized_keys`, for instance. That needed an account on the host, no
+  sudo, and winning a race; it is closed. New type
+  `fleetreeve.accounts.authorized_keys`, which the `user` type uses.
+
+  *What you have to do, if you applied 0.1.0 to hosts:* in 0.1.0 `.ssh`
+  and `authorized_keys` were `file` resources. Once they are no longer in
+  the manifest, fleetreeve removes the ones it created - after the new
+  type has written the keys, so the accounts would be without keys until
+  the run after. Avoid that by telling fleetreeve to stop tracking the old
+  resources before the first run with the new module, for each account:
+
+  ```sh
+  fleetreeve state rm site.yaml 'file[/home/alice/.ssh/authorized_keys]' 'file[/home/alice/.ssh]'
+  ```
+
+  or by making that first run with `-no-prune` (for hosts that pull:
+  `-no-prune` on the server for one interval). `fleetreeve state site.yaml`
+  shows what is tracked. Nothing changes in your data. If you never
+  applied 0.1.0, there is nothing to do.
+
+  If you have 0.1.0 on hosts with accounts that have no sudo, update soon.
+
 ## v0.3.0
 
 Three new modules.

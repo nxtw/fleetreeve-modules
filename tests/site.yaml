@@ -88,3 +88,6 @@ resources:
     keys: ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDaveExampleKeyReplaceMe00 dave@example.com"]
     shell: /bin/sh
     home: /srv/dave
+
+  - fleetreeve.accounts.authorized_keys: erin
+    keys: ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIErinExampleKeyReplaceMe00 erin@example.com"]
