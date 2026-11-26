@@ -1,6 +1,6 @@
 name: fleetreeve.docker
-version: 0.1.0
-description: Docker Engine from Docker's own repository, with daemon.json from data.
+version: 0.2.0
+description: Docker Engine from Docker's own repository, with daemon.json from data, and Compose projects as resources.
 
 # Defaults; a project's data overrides them. See README.md.
 vars:
@@ -20,3 +20,5 @@ vars:
   docker_daemon: {}                  # your settings for daemon.json; each replaces the baseline's
   docker_restart: true               # restart Docker when daemon.json changes (stops containers; see README.md)
   docker_users: []                   # accounts that may use Docker without sudo: root-equivalent, see README.md
+  docker_compose_dir: /opt/compose   # where compose projects get their directory, one each
+  docker_compose: []                 # compose projects to run on a host; see README.md

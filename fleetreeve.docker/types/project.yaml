@@ -1,0 +1,10 @@
+# Used as:   - fleetreeve.docker.project: whoami
+#              dir: /opt/compose/whoami
+# The compose type declares this for you; on its own it is for a compose
+# file that something else puts on the host.
+description: A Docker Compose project, kept up - every service created from the compose file as it now reads, and running.
+params:
+  ensure: {default: present, description: "present or absent. absent stops the project and removes its containers and networks; volumes are kept."}
+  dir: {required: true, description: "The directory with the project's compose.yaml (and .env, if it has one)."}
+script: project.sh
+refresh: true

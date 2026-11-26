@@ -1,9 +1,9 @@
 # fleetreeve.docker
 
 Docker Engine from Docker's own package repository, with `daemon.json`
-written from data and checked by Docker before it goes live. For the Red
-Hat family (CentOS Stream, RHEL, Rocky, Alma, Fedora) and for Debian and
-Ubuntu.
+written from data and checked by Docker before it goes live, and Docker
+Compose projects as resources. For the Red Hat family (CentOS Stream,
+RHEL, Rocky, Alma, Fedora) and for Debian and Ubuntu.
 
 ```yaml
 # site.yaml
@@ -22,9 +22,9 @@ docker_users: [deploy]
 
 | | |
 | --- | --- |
-| role `main` | Docker's repository and signing key, the packages, `/etc/docker/daemon.json`, the `docker` service running and enabled, and the accounts in `docker_users` in the `docker` group |
-
-The module has no types.
+| role `main` | Docker's repository and signing key, the packages, `/etc/docker/daemon.json`, the `docker` service running and enabled, the accounts in `docker_users` in the `docker` group, and the Compose projects in `docker_compose` |
+| type `fleetreeve.docker.compose` | a Compose project from a compose file in your configuration, titled by the project's name: the file, its `.env`, and the project kept up |
+| type `fleetreeve.docker.project` | only the "kept up" part, for a compose file that something else puts on the host; parameter `dir` |
 
 ## Variables
 
@@ -37,6 +37,8 @@ The module has no types.
 | `docker_daemon` | `{}` | your settings for `daemon.json`, as they appear in [Docker's documentation](https://docs.docker.com/reference/cli/dockerd/#daemon-configuration-file) |
 | `docker_restart` | `true` | restart Docker when `daemon.json` changes |
 | `docker_users` | `[]` | accounts that may use Docker without sudo. Read the warning below |
+| `docker_compose` | `[]` | Compose projects to run; see [Compose projects](#compose-projects) |
+| `docker_compose_dir` | `/opt/compose` | where projects get their directory, one each |
 
 ## daemon.json
 
@@ -71,6 +73,83 @@ They come back only if they have a restart policy. Two ways around that:
 - `docker_restart: false` writes the file and leaves the daemon alone;
   the change takes effect when you restart Docker yourself.
 
+## Compose projects
+
+From data, for the hosts the data applies to:
+
+```yaml
+# data/groups/docker.yaml
+docker_compose:
+  - name: whoami
+    env:
+      WHO_PORT: "8080"
+    content: |
+      services:
+        web:
+          image: traefik/whoami
+          ports: ["127.0.0.1:${WHO_PORT}:80"]
+          restart: unless-stopped
+  - name: old-thing
+    ensure: absent                  # stop it and remove it
+```
+
+Or as a resource in a manifest, next to what belongs with it:
+
+```yaml
+resources:
+  - fleetreeve.docker.compose: whoami
+    content: |
+      services:
+        web:
+          image: traefik/whoami
+    require: service[docker]
+```
+
+| | default | |
+| --- | --- | --- |
+| `name` | required | the project's name (the type's title): lower-case letters, digits, `-` and `_` |
+| `content` | required | the compose file, as text |
+| `env` | `{}` | variables for the compose file. They are written to `.env` next to it, readable by root only, and never shown in a plan or a report. Empty leaves `.env` alone |
+| `dir` | `<docker_compose_dir>/<name>` | the project's directory. Relative paths in the compose file start here |
+| `ensure` | `present` | `absent` stops the project and removes its containers, networks and files |
+
+What it does, at every run:
+
+- **It writes `compose.yaml`** (and `.env`). Docker Compose reads the new
+  file before it replaces the old one; a mistake in it fails the run with
+  Compose's own message, and the running project is left alone.
+- **It keeps the project as the file says.** Per service: a container
+  exists, it was made from the service as the file now describes it, and
+  it is running. A service that was added is started, one that changed
+  is recreated, one that left the file is removed, a container that
+  stopped is started again - and services that did not change are not
+  touched. A plan lists these per service.
+- A service that ended by itself with success, as a job does, counts as
+  right and is not run again. One that ended with an error is started
+  again at every run until it succeeds.
+- A change of a value in `env` recreates the services that use it.
+
+Things to know about projects:
+
+- **Volumes are never removed**, not by a change and not by
+  `ensure: absent`. Remove them yourself (`docker volume rm`) when the
+  data may go.
+- Images are pulled when a container is created. A newer image under the
+  same tag is not noticed: name the version in the tag, and change the
+  tag to upgrade.
+- Bringing a project up may take five minutes at most, pulling included.
+  If large images take longer, the run fails there and the next run
+  carries on where the pull got to.
+- A secret in `env` belongs in your data encrypted or from Vault, as any
+  secret; here it ends in a file only root can read. It is visible to
+  whoever may inspect the container - in other words, to `docker_users`.
+- A compose file with `{{ ... }}` in it (a healthcheck format, say) meets
+  fleetreeve's own templates first. Write `{{ "{{" }}` for a literal `{{`.
+- **Use `ensure: absent` to remove a project.** Merely taking it out of
+  `docker_compose` removes its `compose.yaml` and `.env`, which fleetreeve
+  made, but leaves the containers running: fleetreeve does not undo what
+  a script type did when it leaves the manifest.
+
 ## Things to know
 
 - **Being in the `docker` group is being root on the host.** Anyone who
@@ -103,6 +182,8 @@ They come back only if they have a restart policy. Two ways around that:
 
 Tested by applying it in containers of CentOS Stream 9 and Debian 12:
 installation, a container run, a change of `daemon.json` with nested
-settings, a refused setting, and both ways of handling a restart. The
+settings, a refused setting, and both ways of handling a restart; and for
+Compose projects, bringing one up, changes to the file and to `.env`, a
+stopped container, a removed service, a refused file, and removal. The
 other distributions named above use the same two code paths but were not
 run. Not tried on a host that also has podman.

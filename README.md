@@ -12,7 +12,7 @@ itself.
 | [`fleetreeve.sshd`](fleetreeve.sshd) | the OpenSSH server, hardened with a drop-in that is checked before it goes live | `main` | `fleetreeve.sshd.config` |
 | [`fleetreeve.accounts`](fleetreeve.accounts) | people's accounts, with their SSH keys and sudo rights, from data | `main` | `fleetreeve.accounts.user`, `.authorized_keys` |
 | [`fleetreeve.selinux`](fleetreeve.selinux) | SELinux booleans, port labels and file contexts as resources of their own | `main` | `fleetreeve.selinux.boolean`, `.port`, `.fcontext` |
-| [`fleetreeve.docker`](fleetreeve.docker) | Docker Engine from Docker's own repository, with `daemon.json` from data and checked before it goes live | `main` | |
+| [`fleetreeve.docker`](fleetreeve.docker) | Docker Engine from Docker's own repository, with `daemon.json` from data and checked before it goes live, and Compose projects as resources | `main` | `fleetreeve.docker.compose`, `.project` |
 | [`fleetreeve.gitlab_runner`](fleetreeve.gitlab_runner) | GitLab Runner from GitLab's own repository, with its runners configured from data (Red Hat family) | `main` | `fleetreeve.gitlab_runner.runner` |
 
 Each module's own README says what its roles do, which variables they
@@ -24,7 +24,7 @@ In your project directory (the one with your `site.yaml`), add the module
 you want, at a released version:
 
 ```sh
-fleetreeve module add https://github.com/nxtw/fleetreeve-modules.git -path fleetreeve.nginx -version v0.5.0
+fleetreeve module add https://github.com/nxtw/fleetreeve-modules.git -path fleetreeve.nginx -version v0.6.0
 ```
 
 `-path` names the module inside this repository; `-version` is one of its
@@ -64,7 +64,7 @@ changed and whether you have to change anything.
 
 ## Versions
 
-The repository is tagged as a whole: `v0.5.0` is one state of all modules.
+The repository is tagged as a whole: `v0.6.0` is one state of all modules.
 Each module also carries its own `version:` in `module.yaml`, which only
 goes up when that module changes. Versions follow semantic versioning: a
 new major version when a project has to change something to keep working,

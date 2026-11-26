@@ -2,6 +2,17 @@
 
 What changed in each tagged version of this repository, per module.
 
+## v0.6.0
+
+- `fleetreeve.docker` 0.2.0: new type `fleetreeve.docker.compose`, a
+  Docker Compose project from a compose file in your configuration. The
+  file is checked by Compose before it replaces the old one, and the
+  project is kept as the file says: services added, changed, removed or
+  stopped are put right, the others are left alone. Projects can also be
+  listed in data (`docker_compose`). The part that keeps a project up is
+  a type of its own, `fleetreeve.docker.project`. Nothing changes for
+  hosts that use the module without projects.
+
 ## v0.5.0
 
 - New module `fleetreeve.docker` 0.1.0: Docker Engine from Docker's own

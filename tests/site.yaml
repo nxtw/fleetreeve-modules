@@ -28,6 +28,15 @@ vars:
     PermitRootLogin: "no"
 
   docker_users: [alice]
+  docker_compose:
+    - name: whoami
+      env: {WHO_PORT: "8080"}
+      content: |
+        services:
+          web:
+            image: traefik/whoami
+            ports: ["127.0.0.1:${WHO_PORT}:80"]
+    - {name: old-thing, ensure: absent}
   docker_daemon:
     live-restore: true
     log-opts: {max-size: 50m}
@@ -100,3 +109,12 @@ resources:
 
   - fleetreeve.accounts.authorized_keys: erin
     keys: ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIErinExampleKeyReplaceMe00 erin@example.com"]
+
+  - fleetreeve.docker.compose: direct
+    dir: /srv/direct
+    content: "services: {sleeper: {image: busybox}}\n"
+    require: service[docker]
+
+  - fleetreeve.docker.project: elsewhere
+    dir: /srv/elsewhere
+    require: service[docker]

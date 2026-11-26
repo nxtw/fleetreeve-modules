@@ -106,3 +106,19 @@ resources:
     command: 'usermod -aG docker "{{ .item }}"'
     unless: 'id -nG "{{ .item }}" 2>/dev/null | tr " " "\n" | grep -qx docker'
     require: "package[{{ index .docker_packages 0 }}]"
+
+  # --- Compose projects, from data ---------------------------------------
+  - file: "{{ .docker_compose_dir }}"
+    ensure: directory
+    mode: 0755
+    when: .docker_compose
+
+  - fleetreeve.docker.compose: '{{ required "docker_compose: every project needs a name" (index .item "name") }}'
+    each: "{{ .docker_compose }}"
+    ensure: '{{ index .item "ensure" | default "present" }}'
+    content: '{{ index .item "content" | default "" }}'
+    env: '{{ index .item "env" | default (dict) }}'
+    dir: '{{ index .item "dir" | default "" }}'
+    require:
+      - service[docker]
+      - "file[{{ .docker_compose_dir }}]"

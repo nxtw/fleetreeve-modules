@@ -1,0 +1,76 @@
+# Used as:
+#   - fleetreeve.docker.compose: whoami
+#     content: |
+#       services:
+#         web:
+#           image: traefik/whoami
+#           ports: ["127.0.0.1:8080:80"]
+description: A Docker Compose project from a compose file in your configuration - the file, its .env, and the project kept up.
+params:
+  ensure: {default: present, description: "present or absent. absent stops the project and removes its containers, networks and files; volumes are kept."}
+  content: {default: "", description: "The compose file, as text. Required unless ensure is absent."}
+  env: {type: map, default: {}, description: "Variables for the compose file, written to .env next to it (readable by root only, never shown). Empty leaves .env alone."}
+  dir: {default: "", description: "The project's directory; <docker_compose_dir>/<name> when empty."}
+
+resources:
+  - exec: 'fleetreeve.docker.compose[{{ .title }}]: ensure must be present or absent'
+    command: 'echo "ensure must be present or absent, not {{ .ensure }}" >&2; exit 1'
+    unless: "false"
+    when: and (ne .ensure "present") (ne .ensure "absent")
+
+  - exec: 'fleetreeve.docker.compose[{{ .title }}]: content is required'
+    command: 'echo "give the compose file as content" >&2; exit 1'
+    unless: "false"
+    when: and (eq .ensure "present") (not .content)
+
+  # --- present -------------------------------------------------------------
+  - file: '{{ .dir | default (print .docker_compose_dir "/" .title) }}'
+    ensure: directory
+    mode: 0750
+    owner: root
+    group: root
+    when: and (eq .ensure "present") .content
+
+  # Before the compose file: the file may need these to be valid.
+  - file: '{{ .dir | default (print .docker_compose_dir "/" .title) }}/.env'
+    content: "{{ range $name, $value := .env }}{{ $name }}={{ $value }}\n{{ end }}"
+    mode: 0600
+    owner: root
+    group: root
+    sensitive: true
+    require: 'file[{{ .dir | default (print .docker_compose_dir "/" .title) }}]'
+    notify: "fleetreeve.docker.project[{{ .title }}]"
+    when: and (eq .ensure "present") .content .env
+
+  # Docker Compose reads the new file before it replaces the old one, so
+  # a mistake in it fails the run and leaves the running project alone.
+  - file: '{{ .dir | default (print .docker_compose_dir "/" .title) }}/compose.yaml'
+    content: "{{ .content }}"
+    mode: 0640
+    owner: root
+    group: root
+    validate: docker compose -f %s config --quiet
+    require: 'file[{{ .dir | default (print .docker_compose_dir "/" .title) }}]'
+    notify: "fleetreeve.docker.project[{{ .title }}]"
+    when: and (eq .ensure "present") .content
+
+  - fleetreeve.docker.project: "{{ .title }}"
+    dir: '{{ .dir | default (print .docker_compose_dir "/" .title) }}'
+    require: 'file[{{ .dir | default (print .docker_compose_dir "/" .title) }}/compose.yaml]'
+    when: and (eq .ensure "present") .content
+
+  # --- absent: the project first, then its files ----------------------------
+  - fleetreeve.docker.project: "{{ .title }}"
+    ensure: absent
+    dir: '{{ .dir | default (print .docker_compose_dir "/" .title) }}'
+    when: eq .ensure "absent"
+
+  - file: '{{ .dir | default (print .docker_compose_dir "/" .title) }}/compose.yaml'
+    ensure: absent
+    require: "fleetreeve.docker.project[{{ .title }}]"
+    when: eq .ensure "absent"
+
+  - file: '{{ .dir | default (print .docker_compose_dir "/" .title) }}/.env'
+    ensure: absent
+    require: "fleetreeve.docker.project[{{ .title }}]"
+    when: eq .ensure "absent"
