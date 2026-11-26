@@ -1,0 +1,108 @@
+# Docker Engine: repository, packages, daemon.json, service, and who may use it.
+resources:
+  # Docker publishes packages for the Red Hat and Debian families; say so
+  # on anything else instead of half-working.
+  - exec: fleetreeve.docker supports the Red Hat and Debian families only
+    command: 'echo "this host is {{ .facts.os.pretty }}" >&2; exit 1'
+    unless: "false"
+    when: and (ne .facts.os.family "redhat") (ne .facts.os.family "debian")
+
+  # --- Docker's package repository -------------------------------------
+  # The key that signs Docker's packages comes with this module, so a host
+  # checks what it installs against a key it did not have to download.
+  - file: /etc/pki/rpm-gpg/RPM-GPG-KEY-docker
+    template: ../templates/docker-rpm.asc
+    mode: 0644
+    when: and .docker_repo (eq .facts.os.family "redhat")
+
+  - file: /etc/yum.repos.d/docker-ce.repo
+    template: ../templates/docker-ce.repo.tmpl
+    mode: 0644
+    require: file[/etc/pki/rpm-gpg/RPM-GPG-KEY-docker]
+    when: and .docker_repo (eq .facts.os.family "redhat")
+
+  - file: /etc/apt/keyrings
+    ensure: directory
+    mode: 0755
+    when: and .docker_repo (eq .facts.os.family "debian")
+
+  - file: /etc/apt/keyrings/docker.asc
+    template: ../templates/docker-deb.asc
+    mode: 0644
+    require: file[/etc/apt/keyrings]
+    when: and .docker_repo (eq .facts.os.family "debian")
+
+  - file: /etc/apt/sources.list.d/docker.list
+    template: ../templates/docker.list.tmpl
+    mode: 0644
+    require: file[/etc/apt/keyrings/docker.asc]
+    notify: exec[fleetreeve.docker reads the package lists again]
+    when: and .docker_repo (eq .facts.os.family "debian")
+
+  # apt only knows a new repository after reading the lists again.
+  - exec: fleetreeve.docker reads the package lists again
+    command: apt-get update -q
+    refreshonly: true
+    when: and .docker_repo (eq .facts.os.family "debian")
+
+  # --- The packages ------------------------------------------------------
+  - package: "{{ .item }}"
+    each: "{{ .docker_packages }}"
+    require: file[/etc/yum.repos.d/docker-ce.repo]
+    when: and .docker_repo (eq .facts.os.family "redhat")
+
+  - package: "{{ .item }}"
+    each: "{{ .docker_packages }}"
+    require:
+      - file[/etc/apt/sources.list.d/docker.list]
+      - exec[fleetreeve.docker reads the package lists again]
+    when: and .docker_repo (eq .facts.os.family "debian")
+
+  - package: "{{ .item }}"
+    each: "{{ .docker_packages }}"
+    when: not .docker_repo
+
+  # --- daemon.json -------------------------------------------------------
+  - file: /etc/docker
+    ensure: directory
+    mode: 0755
+
+  # A daemon.json that Docker cannot read keeps it from starting, so
+  # Docker checks the new one before it replaces the old.
+  - file: /etc/docker/daemon.json
+    template: ../templates/daemon.json.tmpl
+    mode: 0644
+    owner: root
+    group: root
+    validate: dockerd --validate --config-file %s
+    require:
+      - file[/etc/docker]
+      - "package[{{ index .docker_packages 0 }}]"
+    notify: service[docker]
+    when: .docker_restart
+
+  - file: /etc/docker/daemon.json
+    template: ../templates/daemon.json.tmpl
+    mode: 0644
+    owner: root
+    group: root
+    validate: dockerd --validate --config-file %s
+    require:
+      - file[/etc/docker]
+      - "package[{{ index .docker_packages 0 }}]"
+    when: not .docker_restart
+
+  - service: docker
+    ensure: running
+    enabled: true
+    require:
+      - "package[{{ index .docker_packages 0 }}]"
+      - file[/etc/docker/daemon.json]
+
+  # --- Who may use Docker without sudo -----------------------------------
+  # Being in the docker group is being root on the host: see README.md.
+  - exec: "fleetreeve.docker: {{ .item }} may use Docker"
+    each: "{{ .docker_users }}"
+    command: 'usermod -aG docker "{{ .item }}"'
+    unless: 'id -nG "{{ .item }}" 2>/dev/null | tr " " "\n" | grep -qx docker'
+    require: "package[{{ index .docker_packages 0 }}]"

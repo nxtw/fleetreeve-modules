@@ -2,6 +2,15 @@
 
 What changed in each tagged version of this repository, per module.
 
+## v0.5.0
+
+- New module `fleetreeve.docker` 0.1.0: Docker Engine from Docker's own
+  package repository on the Red Hat and Debian families, verified with
+  the signing key the module carries; `daemon.json` from data, with log
+  rotation as a baseline and checked by `dockerd --validate` before it
+  replaces the old one; the service; and the accounts that may use Docker
+  without sudo.
+
 ## v0.4.1
 
 - `fleetreeve.accounts` 0.2.1: the process that writes an account's keys

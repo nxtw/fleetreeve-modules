@@ -1,0 +1,2 @@
+# Managed by fleetreeve (module fleetreeve.docker). Changes made here are put back.
+deb [arch={{ .facts.arch }} signed-by=/etc/apt/keyrings/docker.asc] {{ .docker_repo_url }}/{{ if eq .facts.os.name "ubuntu" }}ubuntu{{ else }}debian{{ end }} {{ required "fleetreeve.docker: this host reports no release codename (facts.os.codename)" .facts.os.codename }} stable

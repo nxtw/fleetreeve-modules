@@ -1,0 +1,22 @@
+name: fleetreeve.docker
+version: 0.1.0
+description: Docker Engine from Docker's own repository, with daemon.json from data.
+
+# Defaults; a project's data overrides them. See README.md.
+vars:
+  docker_repo: true                  # set up Docker's package repository; false: you provide the packages
+  docker_repo_url: https://download.docker.com/linux   # a mirror of it, if you have one
+  docker_packages:                   # what is installed
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - docker-buildx-plugin
+    - docker-compose-plugin
+  docker_daemon_baseline:            # daemon.json, unless docker_daemon says otherwise
+    log-driver: json-file            # Docker's default, but with a limit: without one,
+    log-opts:                        # container logs grow until the disk is full
+      max-size: 10m
+      max-file: "3"
+  docker_daemon: {}                  # your settings for daemon.json; each replaces the baseline's
+  docker_restart: true               # restart Docker when daemon.json changes (stops containers; see README.md)
+  docker_users: []                   # accounts that may use Docker without sudo: root-equivalent, see README.md

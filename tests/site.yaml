@@ -27,6 +27,14 @@ vars:
     PasswordAuthentication: "no"
     PermitRootLogin: "no"
 
+  docker_users: [alice]
+  docker_daemon:
+    live-restore: true
+    log-opts: {max-size: 50m}
+    registry-mirrors: ["https://mirror.example.com"]
+    default-address-pools:
+      - {base: 10.200.0.0/16, size: 24}
+
   accounts_groups: [admins]
   accounts:
     - name: alice
@@ -50,6 +58,7 @@ include:
   - module: fleetreeve.selinux
   - module: fleetreeve.accounts
   - module: fleetreeve.sshd
+  - module: fleetreeve.docker
 
 resources:
   - fleetreeve.firewalld.port: 8443/tcp

@@ -1,0 +1,7 @@
+# Managed by fleetreeve (module fleetreeve.docker). Changes made here are put back.
+[docker-ce-stable]
+name=Docker CE Stable - $basearch
+baseurl={{ .docker_repo_url }}/{{ if eq .facts.os.name "fedora" }}fedora{{ else if eq .facts.os.name "rhel" }}rhel{{ else }}centos{{ end }}/$releasever/$basearch/stable
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-docker

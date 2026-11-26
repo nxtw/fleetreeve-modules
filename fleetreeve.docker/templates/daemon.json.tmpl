@@ -1,0 +1,20 @@
+{{- /* Any value as JSON: strings, numbers, true/false, lists and maps, nested as deep as they go. */ -}}
+{{- define "json" -}}
+{{- $t := printf "%T" . -}}
+{{- if eq $t "string" }}{{ printf "%q" . }}
+{{- else if hasPrefix "map[" $t }}{ {{- $first := true }}{{ range $k, $v := . }}{{ if $first }}{{ $first = false }}{{ else }}, {{ end }}{{ printf "%q" $k }}: {{ template "json" $v }}{{ end -}} }
+{{- else if hasPrefix "[]" $t }}[ {{- range $i, $v := . }}{{ if $i }}, {{ end }}{{ template "json" $v }}{{ end -}} ]
+{{- else if eq $t "<nil>" }}null
+{{- else }}{{ . }}
+{{- end -}}
+{{- end -}}
+{
+{{- $first := true }}
+{{- range $name, $value := .docker_daemon }}{{ if $first }}{{ $first = false }}{{ else }},{{ end }}
+  {{ printf "%q" $name }}: {{ template "json" $value }}
+{{- end }}
+{{- $mine := .docker_daemon }}
+{{- range $name, $value := .docker_daemon_baseline }}{{ if eq (printf "%T" (index $mine $name)) "<nil>" }}{{ if $first }}{{ $first = false }}{{ else }},{{ end }}
+  {{ printf "%q" $name }}: {{ template "json" $value }}
+{{- end }}{{ end }}
+}
