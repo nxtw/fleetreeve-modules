@@ -2,6 +2,16 @@
 
 What changed in each tagged version of this repository, per module.
 
+## v0.4.1
+
+- `fleetreeve.accounts` 0.2.1: the process that writes an account's keys
+  as that account is now started with an empty environment and in a
+  session of its own. In 0.2.0 it inherited the environment of the
+  fleetreeve agent, which the account could read while the process ran -
+  including a token, where the agent was started with one in its
+  environment - and, when fleetreeve was run from a shell, root's
+  terminal. Nothing to do but update; skip 0.2.0.
+
 ## v0.4.0
 
 - `fleetreeve.accounts` 0.2.0: **the SSH keys of an account are now

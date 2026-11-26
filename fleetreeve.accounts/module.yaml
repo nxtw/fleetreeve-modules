@@ -1,5 +1,5 @@
 name: fleetreeve.accounts
-version: 0.2.0
+version: 0.2.1
 description: People's accounts, with their SSH keys and sudo rights, from data.
 
 # Defaults; a project's data overrides them. See README.md.

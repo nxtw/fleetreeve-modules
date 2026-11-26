@@ -41,9 +41,19 @@ esac
 
 command -v runuser >/dev/null 2>&1 || { echo "runuser is not installed (package util-linux)" >&2; exit 1; }
 
+command -v setsid >/dev/null 2>&1 || { echo "setsid is not installed (package util-linux)" >&2; exit 1; }
+
 # Run a shell snippet as the account, in its home directory. The home
 # directory arrives as $1, so nothing of ours is pasted into the snippet.
-as_user() { runuser -u "$user" -- /bin/sh -c "cd \"\$1\" 2>/dev/null || exit 9; $1" sh "$home"; }
+#
+# What runs as the account can be inspected by the account, so it is given
+# nothing of root's: an empty environment (the agent's may hold tokens),
+# and a session of its own, so that it has no terminal to type into when
+# someone runs fleetreeve from a shell.
+as_user() {
+    setsid -w env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME="$home" USER="$user" LOGNAME="$user" \
+        runuser -u "$user" -- /bin/sh -c "cd \"\$1\" 2>/dev/null || exit 9; $1" sh "$home"
+}
 
 # What is there now, seen by the account itself: "<kind and mode of .ssh>",
 # "<kind and mode of the file>", then the file's content.
@@ -52,7 +62,7 @@ look() {
         stat -c "%F %a %U" .ssh 2>/dev/null || echo absent
         stat -c "%F %a %U" .ssh/authorized_keys 2>/dev/null || echo absent
         [ -f .ssh/authorized_keys ] && [ ! -L .ssh/authorized_keys ] && [ ! -L .ssh ] && cat .ssh/authorized_keys || true
-    '
+    ' </dev/null
 }
 
 case $1 in

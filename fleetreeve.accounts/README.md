@@ -68,9 +68,10 @@ Each entry of `accounts`, and each parameter of the type:
   alice's keys" into "let alice log in as root". So the part that touches
   the home directory runs as the account itself (`runuser`), where a link
   leads nowhere the account could not go anyway; a `.ssh` or
-  `authorized_keys` that is a link is replaced by a real one. This needs
-  the home directory to exist, and `runuser` (util-linux, which every
-  mainstream distribution has).
+  `authorized_keys` that is a link is replaced by a real one. That process
+  gets nothing of root's: an empty environment, and no terminal. This
+  needs the home directory to exist, and `runuser` and `setsid`
+  (util-linux, which every mainstream distribution has).
 - **`groups` is the whole list** too: the account is taken out of groups
   that are not listed.
 - **Passwords are not set.** An account made here has none and logs in
